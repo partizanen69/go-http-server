@@ -7,8 +7,6 @@ import (
 	"github.com/google/uuid"
 )
 
-
-
 type Post struct {
 	ID string `json"id"`
 	CreatedAt time.Time `json:"createdAt"`
@@ -42,4 +40,30 @@ func (c Client) CreatePost(userEmail, text string) (Post, error) {
 	}
 	
 	return post, nil
+}
+
+func (c Client) GetPosts(userEmail string) ([]Post, error) {
+	data, err := c.readDb()
+	if err != nil {
+		return nil, err
+	}
+
+	posts := []Post{}
+	for _, post := range data.Posts {
+		if post.UserEmail == userEmail {
+			posts = append(posts, post)
+		}
+	}
+
+	return posts, nil
+}
+
+func (c Client) DeletePost(id string) error {
+	data, err := c.readDb()
+	if err != nil {
+		return err
+	}
+
+	delete(data.Posts, id)
+	return c.updateDb(data)
 }
