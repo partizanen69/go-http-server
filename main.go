@@ -12,9 +12,22 @@ import (
 )
 
 func main() {
+	dbPath := "db.json"
+	databaseClient := database.NewClient(dbPath)
+	err := databaseClient.EnsureDB()
+	if err != nil {
+		log.Fatal("Could not ensure the database at path", dbPath)
+	}
+
+	apiCfg := apiConfig{
+		dbClient: *databaseClient,
+	}
+
 	serveMux := http.NewServeMux()
 	serveMux.HandleFunc("/", testHandler)
 	serveMux.HandleFunc("/err", testErrHandler)
+	serveMux.HandleFunc("/users", apiCfg.endpointUsersHandler)
+	serveMux.HandleFunc("/users/", apiCfg.endpointUsersHandler)
 	
 	const addr = "localhost:8080"
 	srv := http.Server{
@@ -25,7 +38,7 @@ func main() {
 	}
 
 	fmt.Println("Server has started on address:", addr)
-	err := srv.ListenAndServe()
+	err = srv.ListenAndServe()
 	log.Fatal("Could not start the server because of error:", err)
 }
 
@@ -71,4 +84,23 @@ func respondWithError(w http.ResponseWriter, code int, err error) {
 
 func testErrHandler(w http.ResponseWriter, r *http.Request) {
 	respondWithError(w, 500, errors.New("this is a test error"))
+}
+
+type apiConfig struct {
+	dbClient database.Client
+}
+
+func (apiCfg apiConfig) endpointUsersHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+		case http.MethodGet:
+				// call GET handler
+		case http.MethodPost:
+			apiCfg.handlerCreateUser(w, r)
+		case http.MethodPut:
+				// call PUT handler
+		case http.MethodDelete:
+			apiCfg.handlerDeleteUser(w, r)
+		default:
+				respondWithError(w, 404, errors.New("method not supported"))
+	}
 }
